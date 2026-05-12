@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  db:
+    image: mariadb:10.6
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wp_user
+      MYSQL_PASSWORD: wp_password
+    volumes:
+      - db_data:/var/lib/mysql
+
+  wordpress:
+    image: wordpress:latest
+    ports:
+      - "80:80"
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp_user
+      WORDPRESS_DB_PASSWORD: wp_password
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - wp_data:/var/www/html
+    depends_on:
+      - db
+
+  git-sync:
+    image: alpine/git
+    command: >
+      /bin/sh -c "
+      if [ ! -d '/repo/.git' ]; then
+        git clone https://github.com/Naiara309/ProyectoRA5.git /repo;
+      else
+        cd /repo && git pull origin main;
+      fi &&
+      mkdir -p /var/www/html/wp-content/themes/webfusion &&
+      echo '/* Theme Name: Webfusion */' > /var/www/html/wp-content/themes/webfusion/style.css &&
+      cp -r /repo/Web/* /var/www/html/wp-content/themes/webfusion/
+      "
+    volumes:
+      - wp_data:/var/www/html
+      - git_data:/repo
+    depends_on:
+      - wordpress
+
+volumes:
+  db_data:
+  wp_data:
+  git_data:
